@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import coredevices.pebble.services.StoreCompanion
 import kotlinx.io.files.Path
 import kotlin.time.Clock
 
@@ -58,6 +59,7 @@ class PebbleAppDelegate(
     private val memfaultChunkQueue: MemfaultChunkQueue,
     private val analyticsHeartbeatQueue: AnalyticsHeartbeatQueue,
     private val pebbleWebServices: PebbleWebServices,
+    private val storeCompanion: StoreCompanion,
 ) {
     private val logger = Logger.withTag("PebbleAppDelegate")
 
@@ -74,6 +76,7 @@ class PebbleAppDelegate(
         }
         GlobalScope.launch {
             appstoreSourceInitializer.initAppstoreSourcesDB()
+            storeCompanion.init()
             weatherLocationDao.insertDefaultWeatherLocationOnce(settings)
             // Don't initialize everything if the user just started the app for the first time and
             // hasn't gone through onboarding yet - it would create permission prompts on ios (we

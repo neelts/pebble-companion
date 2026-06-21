@@ -190,6 +190,7 @@ val watchModule = module {
     factoryOf(::NativeLockerAddUtil)
     singleOf(::WatchOnboardingFinished)
     factoryOf(::AppstoreSourceInitializer)
+    single { coredevices.pebble.services.StoreCompanion(get(), get(), get()) }
     factoryOf(::OpenWeather25Interceptor)
     factoryOf(::YahooWeatherInterceptor)
     factoryOf(::PebbleTokenProvider) bind TokenProvider::class

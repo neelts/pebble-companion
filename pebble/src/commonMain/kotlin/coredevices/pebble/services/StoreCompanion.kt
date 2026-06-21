@@ -60,25 +60,24 @@ class StoreCompanion(
 
     private suspend fun install(device: ConnectedPebbleDevice, id: String) {
         val sources = appstoreSourceDao.getAllSources().first()
-        val source = sources.firstOrNull { it.isPebbleFeed() } ?: sources.firstOrNull()
-        if (source == null) {
+        if (sources.isEmpty()) {
             reply(device, "err:nosrc"); return
         }
-        val storeApp = runCatching {
-            get<AppstoreService> { parametersOf(source) }
-                .fetchAppStoreApp(id, hardwarePlatform = null)
-                ?.data?.firstOrNull()
-        }.getOrElse { logger.e(it) { "fetch failed" }; null }
-        if (storeApp == null) {
-            reply(device, "err:notfound"); return
+        // The watch's ids come from whichever feed served browse (Rebble via napp
+        // today), so try every source — Rebble first — until one resolves the id.
+        for (source in sources.sortedByDescending { it.isRebbleFeed() }) {
+            val storeApp = runCatching {
+                get<AppstoreService> { parametersOf(source) }
+                    .fetchAppStoreApp(id, hardwarePlatform = null)
+                    ?.data?.firstOrNull()
+            }.getOrElse { logger.e(it) { "fetch from ${source.url} failed" }; null } ?: continue
+            val entry = storeApp.toLockerEntry(source.url, null) ?: continue
+            runCatching { libPebble.addAppToLocker(entry) }
+                .onSuccess { logger.d { "installed $id (${storeApp.title}) from ${source.url}" }; reply(device, "installed") }
+                .onFailure { logger.e(it) { "install failed" }; reply(device, "err:install") }
+            return
         }
-        val entry = storeApp.toLockerEntry(source.url, null)
-        if (entry == null) {
-            reply(device, "err:norelease"); return
-        }
-        runCatching { libPebble.addAppToLocker(entry) }
-            .onSuccess { logger.d { "installed $id (${storeApp.title})" }; reply(device, "installed") }
-            .onFailure { logger.e(it) { "install failed" }; reply(device, "err:install") }
+        reply(device, "err:notfound")
     }
 
     private suspend fun reply(device: ConnectedPebbleDevice, status: String) {

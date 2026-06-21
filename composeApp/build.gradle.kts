@@ -293,6 +293,9 @@ android {
         getByName("debug") {
             isMinifyEnabled = false
             isDebuggable = true
+            // pebble-store fork: install alongside the official app for side-by-side testing.
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
         }
     }
     compileOptions {
